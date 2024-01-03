@@ -21,14 +21,16 @@ const PostList = () => {
 
 
 
+
     let content;
 
     if (postStatus === "loading") {
         content = <p>"Loading..."</p>;
     } else if (postStatus === "succeeded") {
         const orderedPost = posts.slice().sort((a, b) => b.date.localeCompare(a.date));
+
         //slice ile posts dizisinin kopyasını aldık. daha sonra sort ile en yeni ve eskiyi sıraladık. localCompare de karışlaştırdı
-        content = posts.map((post, index) => (
+        content = orderedPost.map((post, index) => (
             <PostsExcerpt post={post} key={index} />
         ));
     } else if (postStatus === "failed") {
@@ -39,7 +41,6 @@ const PostList = () => {
 
     return (
         <section>
-            <h2 className="text-5xl text-white mt-10">Posts</h2>
             <div className="grid lg:grid-cols-5 md:grid-cols-4 sm:grid-cols-2 gap-3">
                 {content}
             </div>

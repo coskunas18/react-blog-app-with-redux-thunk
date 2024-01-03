@@ -1,13 +1,20 @@
 import PostsList from "./features/post/postsList"
 import AddPostForm from "./features/post/AddPostForm"
-
+import { Route, Routes } from "react-router-dom"
+import SinglePostPage from "./features/post/SinglePostPage";
+import Layout from "./components/Layout";
 export default function App() {
     return (
-        <div className="h-screen bg-amber-950 overflow-auto">
-            <AddPostForm />
-            <hr className="mt-5" />
-            <PostsList/>
-
+        <div className="bg-amber-900 h-screen overflow-auto">
+            <Routes>
+                <Route path="/" element={<Layout />}>
+                    <Route index element={<PostsList />} />
+                    <Route path="post">
+                        <Route index element={<AddPostForm />} />
+                        <Route path=":postId" element={<SinglePostPage />} />
+                    </Route>
+                </Route>
+            </Routes>
         </div>
     )
-  }
+}
