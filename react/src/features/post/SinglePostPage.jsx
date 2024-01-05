@@ -11,7 +11,7 @@ export default function SinglePostPagek() {
 
     if (!post) {
         return (
-            <section>
+            <section className="text-center text-5xl text-amber-500 mt-10">
                 <h2>Post not found!</h2>
             </section>
         )
@@ -22,7 +22,7 @@ export default function SinglePostPagek() {
             <div className="flex justify-between">
                 <h3 className="text-2xl">{post.title}</h3>
                 <div>
-                    <Link to={`post/edit/${post.id}`} className="text-red-200" >
+                    <Link to={`/post/edit/${post.id}`} className="text-red-200" >
                         Edit Post
                     </Link>
                 </div>
