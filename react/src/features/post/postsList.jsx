@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from "react-redux";
-import { selecAllPosts, getPostsError, fetchPosts, getPostsStatus } from "./postsSlice";
+import { selectPostIds, getPostsError, fetchPosts, getPostsStatus } from "./postsSlice";
 import { useEffect } from "react";
 import PostsExcerpt from "./PostsExcerpt";
 
@@ -7,7 +7,7 @@ import PostsExcerpt from "./PostsExcerpt";
 const PostList = () => {
     const dispatch = useDispatch();
 
-    const posts = useSelector(selecAllPosts);
+    const orderedPostIds = useSelector(selectPostIds);
     const postStatus = useSelector(getPostsStatus);
     const error = useSelector(getPostsError)
 
@@ -27,12 +27,14 @@ const PostList = () => {
     if (postStatus === "loading") {
         content = <p>"Loading..."</p>;
     } else if (postStatus === "succeeded") {
-        const orderedPost = posts.slice().sort((a, b) => b.date.localeCompare(a.date));
+        content = orderedPostIds.map(postId => <PostsExcerpt key={postId} postId={postId} />)
 
+        /*
         //slice ile posts dizisinin kopyasını aldık. daha sonra sort ile en yeni ve eskiyi sıraladık. localCompare de karışlaştırdı
         content = orderedPost.map((post, index) => (
             <PostsExcerpt post={post} key={index} />
         ));
+        */
     } else if (postStatus === "failed") {
         content = <p>{error}</p>
     }

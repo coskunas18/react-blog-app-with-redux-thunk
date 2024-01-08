@@ -1,14 +1,18 @@
-import { createSlice, nanoid,createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice,createSelector,createAsyncThunk,createEntityAdapter } from "@reduxjs/toolkit";
 import {sub} from "date-fns"
 import axios from "axios";
 
 const POSTS_URL = 'https://jsonplaceholder.typicode.com/posts'
 
-const initialState = {
-    posts:[],
+const postsAdapter = createEntityAdapter({
+    sortComparer:(a,b) => b.date.localeCompare(a.date)
+})
+
+const initialState = postsAdapter.getInitialState( {
     status:'idle',
-    error:null
-};
+    error:null,
+    count:0
+});
 
 
 export const fetchPosts = createAsyncThunk('posts/fetchPosts', async () => {
@@ -61,39 +65,20 @@ export const PostSlice = createSlice({
     name: "posts",
     initialState,
     reducers: {
-        postAdded: {
-            reducer(state, action) {
-                //postAdded tetiklendiğinde bu kısım çalışır, nasıl değişkecek?
-                state.posts.push(action.payload);
-            },
-            prepare(title, content,userId) {
-                //veri buradah hazırlanır
-                return {
-                    payload: {
-                        id: nanoid(),
-                        title,
-                        content,
-                        date:new Date().toISOString(),
-                        userId,
-                        reactions:{
-                            thumbsUp:0,
-                            wow:0,
-                            heart:0,
-                            rocket:0,
-                            coffee:0
-                        }
-                    },
-                };
-            },
-        },
-        reactionAdded(state,action){
+    reactionAdded(state,action){
             const {postId,reaction} = action.payload; //payloada reactionAdded({ postId: post.id,reaction: name}) örnek olarak böyle bir değer gelicke
-            const existingPost = state.posts.find(post => post.id === postId)
+            //const existingPost = state.posts.find(post => post.id === postId)
+            const existingPost =state.entities[postId]
             if (existingPost) {
                 existingPost.reactions[reaction]++
             }
+        },
+
+        increaseCount(state,action){
+            state.count = state.count + 1
         }
     },
+
     extraReducers(builder){ //asenkron işlemler için extraReducer kullanıyoruz.
         builder.addCase(fetchPosts.pending,(state,action) => {//fetchPosts bekleme durumunda iken...
             state.status = 'loading'
@@ -112,8 +97,8 @@ export const PostSlice = createSlice({
                 }
                 return post;
             })
-
-            state.posts = state.posts.concat(loadedPosts)
+            //state.posts = state.posts.concat(loadedPosts) //state.post ve loaded post dizisi birleştirildi orjinal dizi değiştirilmedi
+            postsAdapter.upsertMany(state,loadedPosts)
         })
         .addCase(fetchPosts.rejected, (state, action) => {
             state.status = 'failed'
@@ -129,7 +114,8 @@ export const PostSlice = createSlice({
                 rocket:0,
                 coffee:0
             }
-            state.posts.push(action.payload)
+           // state.posts.push(action.payload)
+            postsAdapter.addOne(state,action.payload);
         })
         .addCase(updatePost.fulfilled,(state,action) => {
             if (!action.payload?.id) {
@@ -137,10 +123,11 @@ export const PostSlice = createSlice({
                 console.log(action.payload)
                 return;
             }
-            const {id} = action.payload;
+            //const {id} = action.payload;
             action.payload.date = new Date().toISOString();
-            const posts = state.posts.filter(post => post.id !== id);
-            state.posts = [...posts,action.payload];
+            //const posts = state.posts.filter(post => post.id !== id);
+            //state.posts = [...posts,action.payload];
+            postsAdapter.upsertOne(state,action.payload)
         })
         .addCase(deletePost.fulfilled,(state,action) => {
             if (!action.payload?.id) {
@@ -149,17 +136,33 @@ export const PostSlice = createSlice({
                 return;
             }
             const {id} = action.payload;
-            const posts = state.posts.filter(post=>post.id !==id);
-            state.posts = posts;
+            postsAdapter.removeOne(state,id)
         })
     }
 });
 
-export const selecAllPosts = (state) => state.posts.posts; //useSelector kullanırken direkt olarak selectAllPosts çağırılacak
+
+export const {
+    selectAll: selectAllPosts,
+    selectById: selectPostById,
+    selectIds: selectPostIds
+} = postsAdapter.getSelectors(state => state.posts)
+
 export const getPostsStatus = (state) => state.posts.status;
 export const getPostsError = (state) => state.posts.error;
+export const getCount = (state) => state.posts.count;
 
-export const selectPostById = (state,postId) => state.posts.posts.find(post => post.id === postId)
+//export const selecAllPosts = (state) => state.posts.posts; //useSelector kullanırken direkt olarak selectAllPosts çağırılacak
+//export const selectPostById = (state,postId) => state.posts.posts.find(post => post.id === postId)
 
-export const { postAdded,reactionAdded} = PostSlice.actions;
+
+export const selectPostsByUser = createSelector(
+    [selectAllPosts, (state, userId) => userId],
+    (posts, userId) => {
+        const parsedUserId = Number(userId); // userId'yi sayıya çevir
+        return posts.filter(post => post.userId === parsedUserId);
+    }
+);
+
+export const { increaseCount,reactionAdded} = PostSlice.actions;
 export default PostSlice.reducer;
